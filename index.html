@@ -100,24 +100,7 @@
     const dbg = (msg)=>{ const el = document.getElementById('dbg'); el.textContent = msg; };
 
     function alertSafe(text){
-      try { tg?.showAlert(String(text)); } catch(e){ console.log('alert:', text); }
-      dbg(String(text));
-    }
-
-    function send(action, extra={}){
-      const payload = JSON.stringify({action, ...extra});
-      alertSafe("SEND: " + payload);
-      try {
-        tg.sendData(payload);
-      } catch (e) {
-        alertSafe("sendData error: " + (e?.message || e));
-      }
-    }
-
-    // Init Telegram WebApp
-    try {
-      tg.ready();
-      tg.expand(); // максимум высоты
+      try { tg?.showAlert(String(text));оты
       tg.enableClosingConfirmation();
       tg.onEvent('themeChanged', ()=>{});
     } catch (e) {
