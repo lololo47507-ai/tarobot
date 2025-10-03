@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Tarot Menu</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{
+      --bg: var(--tg-theme-bg-color, #070814);
+      --text: var(--tg-theme-text-color, #f4f1ff);
+      --muted: var(--tg-theme-hint-color, #b7b3d6);
+      --card: var(--tg-theme-secondary-bg-color, #0f1224);
+      --btn: var(--tg-theme-button-color, #8c6bff);
+      --btn-text: var(--tg-theme-button-text-color, #fff);
+      --border: rgba(255,255,255,.10);
+      --glow: 0 14px 46px rgba(140,107,255,.35);
+      --radius: 18px;
+      --accent1:#8c6bff; --accent2:#39bdff; --accent3:#ff7ad9;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;color:var(--text);
+      font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:#070814; overflow-x:hidden;
+    }
+    /* АУРОРА + ЗВЁЗДЫ */
+    .bg-aurora,.bg-stars{position:fixed;inset:0;pointer-events:none}
+    .bg-aurora::before,.bg-aurora::after{
+      content:"";position:absolute;inset:-40% -20% -20% -20%;
+      background:
+        radial-gradient(60% 60% at 10% 20%, rgba(140,107,255,.25), transparent 70%),
+        radial-gradient(60% 60% at 90% 10%, rgba(57,189,255,.18), transparent 70%),
+        radial-gradient(60% 60% at 40% 100%, rgba(255,122,217,.16), transparent 70%);
+      filter:blur(40px);animation:drift 22s linear infinite
+    }
+    .bg-aurora::after{animation-duration:34s;opacity:.7}
+    @keyframes drift{0%{transform:none}50%{transform:translate3d(-2%,2%,0) rotate(3deg)}100%{transform:none}}
+    .bg-stars{
+      background-image:
+        radial-gradient(1.6px 1.6px at 20% 30%, rgba(255,255,255,.7), transparent 60%),
+        radial-gradient(1.2px 1.2px at 70% 10%, rgba(255,255,255,.5), transparent 60%),
+        radial-gradient(1.4px 1.4px at 60% 80%, rgba(255,255,255,.5), transparent 60%),
+        radial-gradient(1.0px 1.0px at 30% 60%, rgba(255,255,255,.4), transparent 60%);
+      opacity:.8;filter:drop-shadow(0 2px 10px rgba(255,255,255,.05));animation:twinkle 8s ease-in-out infinite
+    }
+    @keyframes twinkle{0%,100%{opacity:.65}50%{opacity:.9}}
+
+    .wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:20px 18px 28px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .brand{display:flex;gap:14px;align-items:center}
+    .sigil{
+      width:52px;height:52px;border-radius:14px;display:grid;place-items:center;position:relative;
+      background:
+        radial-gradient(70% 70% at 50% 35%, #9c86ff 0%, #3a2f6b 55%),
+        radial-gradient(80% 80% at 10% 100%, #39bdff44 0%, transparent 70%);
+      box-shadow:var(--glow)
+    }
+    .sigil::after{content:"";position:absolute;inset:2px;border-radius:12px;border:1px solid rgba(255,255,255,.18)}
+    .sigil svg{fill:#fff;width:28px;height:28px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.28))}
+    h1{margin:0;font-size:22px;letter-spacing:.4px}
+    .muted{color:var(--muted);font-size:13px}
+    .topup{display:flex;gap:10px;align-items:center}
+    .btn{
+      appearance:none;cursor:pointer;border:0;border-radius:12px;padding:12px 16px;
+      background:linear-gradient(90deg, var(--accent1), var(--accent2));
+      color:var(--btn-text);font-weight:900;letter-spacing:.2px;box-shadow:var(--glow);
+      transition:transform .06s ease, opacity .2s ease, filter .2s ease; position:relative; overflow:hidden
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn.ghost{background:transparent;border:1px solid var(--border);box-shadow:none;color:var(--text)}
+    .btn::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg, rgba(255,255,255,.35), transparent 60%);opacity:.15;mix-blend-mode:screen;transform:translateX(-100%);transition:transform .6s ease}
+    .btn:hover::after{transform:translateX(0)}
+
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-top:14px;backdrop-filter:blur(5px)}
+    .panel h3{margin:0 0 12px;font-size:16px;letter-spacing:.2px}
+    .bar{display:flex;align-items:center;gap:10px;margin-top:6px}
+    .num{font-size:32px;font-weight:1000;letter-spacing:.3px;text-shadow:0 6px 18px rgba(140,107,255,.25)}
+    .cards{display:grid;gap:16px;margin-top:12px}
+    @media (min-width:780px){ .cards{grid-template-columns:repeat(4,1fr)} }
+
+    .tile{
+      position:relative;overflow:hidden;border-radius:18px;border:1px solid var(--border);
+      min-height:130px;display:flex;align-items:flex-end;padding:14px;cursor:pointer;
+      transition:transform .08s ease, box-shadow .25s ease, filter .25s ease;
+      background:
+        radial-gradient(140% 140% at 100% 0%, rgba(140,107,255,.18), transparent 60%),
+        radial-gradient(140% 140% at 0% 100%, rgba(57,189,255,.14), transparent 60%),
+        rgba(255,255,255,.03);
+      box-shadow:0 12px 40px rgba(140,107,255,.15)
+    }
+    .tile:hover{transform:translateY(-2px);box-shadow:0 18px 52px rgba(140,107,255,.28)}
+    .tile .label{font-weight:900;font-size:16px;text-shadow:0 2px 10px rgba(0,0,0,.3)}
+    .tile .icon{position:absolute;top:12px;right:12px;opacity:.95}
+    .tile .icon svg{width:32px;height:32px;fill:#fff;filter:drop-shadow(0 8px 22px rgba(140,107,255,.55))}
+    .tile::after{content:"";position:absolute;inset:auto -20% -28% -20%;height:62%;
+      background:radial-gradient(40% 60% at 50% 100%, rgba(255,255,255,.1), transparent 70%)}
+    .tile[data-act="card_of_day"]{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox=\"0 0 320 220\"><defs><linearGradient id=\"g\" x1=\"0\" x2=\"0\" y1=\"0\" y2=\"1\"><stop stop-color=\"%23f6e8ff\" stop-opacity=\".35\"/><stop offset=\"1\" stop-color=\"%23a48fff\" stop-opacity=\"0\"/></linearGradient></defs><g opacity=\".55\"><rect x=\"180\" y=\"20\" width=\"90\" height=\"140\" rx=\"10\" fill=\"url(%23g)\"/><rect x=\"110\" y=\"40\" width=\"90\" height=\"140\" rx=\"10\" fill=\"url(%23g)\"/><rect x=\"40\" y=\"60\" width=\"90\" height=\"140\" rx=\"10\" fill=\"url(%23g)\"/></g></svg>');background-repeat:no-repeat;background-position:left -12px bottom -12px;background-size:110%}
+    .tile[data-act="three"]{background-image:url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 220\"><circle cx=\"70\" cy=\"70\" r=\"40\" fill=\"rgba(255,255,255,.10)\"/><circle cx=\"140\" cy=\"110\" r=\"54\" fill=\"rgba(255,255,255,.08)\"/><circle cx=\"230\" cy=\"72\" r=\"45\" fill=\"rgba(255,255,255,.12)\"/></svg>');background-size:120%}
+    .tile[data-act="yes_no"]{background-image:url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 220\"><path d=\"M20 170 Q160 40 300 170\" stroke=\"rgba(255,255,255,.18)\" stroke-width=\"16\" fill=\"none\"/></svg>');background-size:120%}
+    .tile[data-act="week"]{background-image:url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 220\"><rect x=\"40\" y=\"52\" width=\"240\" height=\"130\" rx=\"12\" fill=\"rgba(255,255,255,.08)\"/><g fill=\"rgba(255,255,255,.12)\"><rect x=\"60\" y=\"74\" width=\"50\" height=\"30\" rx=\"6\"/><rect x=\"120\" y=\"74\" width=\"50\" height=\"30\" rx=\"6\"/><rect x=\"180\" y=\"74\" width=\"50\" height=\"30\" rx=\"6\"/><rect x=\"240\" y=\"74\" width=\"30\" height=\"30\" rx=\"6\"/></g></svg>');background-size:120%}
+
+    /* Магазин: grid, без наложений */
+    .sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);display:none;align-items:flex-end;z-index:5}
+    .sheet.open{display:flex}
+    .sheet .box{background:var(--card);border:1px solid var(--border);border-radius:18px 18px 0 0;box-shadow:var(--glow);padding:14px 14px 18px;width:100%;max-width:960px;margin:0 auto}
+    .packs{display:grid;gap:12px;margin-top:12px}
+    .pack{
+      display:grid;grid-template-columns: 1fr auto auto;gap:12px;align-items:center;
+      padding:16px;border-radius:16px;border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      position:relative;overflow:hidden
+    }
+    .left{display:flex;gap:10px;align-items:center;min-width:0}
+    .pill{
+      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:6px 12px;font-weight:900;white-space:nowrap
+    }
+    .badge{
+      font-size:12px;color:#fff;padding:4px 8px;border-radius:10px;
+      background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.18);white-space:nowrap
+    }
+    .price{font-weight:1000;letter-spacing:.2px;white-space:nowrap}
+    .right{display:flex;gap:10px;align-items:center}
+    .btn.buy{min-width:120px}
+    @media (max-width:420px){
+      .pack{grid-template-columns:1fr;gap:8px}
+      .right{justify-content:flex-start}
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-aurora"></div>
+  <div class="bg-stars"></div>
+
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="sigil" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.5 6.5L22 10l-6 4.5L17 22l-5-3.2L7 22l1-7.5L2 10l6.5-1.5L12 2z"/></svg>
+        </div>
+        <div>
+          <h1>Меню таро</h1>
+          <div class="muted" id="user">@user</div>
+        </div>
+      </div>
+      <div class="topup">
+        <button class="btn" id="btnTopup">Пополнить</button>
+      </div>
+    </header>
+
+    <section class="panel">
+      <h3>Баланс</h3>
+      <div class="bar">
+        <div class="num" id="balanceNum">—</div>
+        <div class="muted">сообщений</div>
+        <div class="muted" style="margin-left:auto" id="clock">—:—</div>
+      </div>
+      <div class="bar">
+        <button class="btn ghost" id="btnBalance">Обновить баланс</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>Расклады</h3>
+      <div class="cards">
+        <div class="tile" data-act="card_of_day">
+          <div class="icon"><svg viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Zm6 2v8l6-4-6-4Z"/></svg></div>
+          <div class="label">Карта дня</div>
+        </div>
+        <div class="tile" data-act="three">
+          <div class="icon"><svg viewBox="0 0 24 24"><path d="M3 7h6v10H3V7Zm6-2h6v14H9V5Zm6 2h6v10h-6V7Z"/></svg></div>
+          <div class="label">3 карты</div>
+        </div>
+        <div class="tile" data-act="yes_no">
+          <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 14h-2v-2h2v2Zm1.1-6.9c-.5.4-.8.7-.9 1.4v.5h-2v-.7c.1-1.1.7-1.7 1.3-2.1.6-.4 1.2-.8 1.2-1.5 0-.8-.6-1.3-1.5-1.3-.8 0-1.4.4-1.9 1l-1.4-1.2C7.7 4.3 9 3.5 10.9 3.5c2.1 0 3.7 1.2 3.7 3.1 0 1.3-.7 2-1.5 2.5Z"/></svg></div>
+          <div class="label">Да / Нет</div>
+        </div>
+        <div class="tile" data-act="week">
+          <div class="icon"><svg viewBox="0 0 24 24"><path d="M3 4h18v3H3V4Zm0 5h18v11H3V9Zm5 3v2h2v-2H8Zm0 3v2h2v-2H8Z"/></svg></div>
+          <div class="label">Расклад на неделю</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="muted">1 ответ ИИ или один расклад = 1 сообщение</div>
+    </section>
+  </div>
+
+  <!-- Магазин -->
+  <div class="sheet" id="shop">
+    <div class="box">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0">Купить сообщения</h3>
+        <button class="btn ghost close" id="closeShop">Закрыть</button>
+      </div>
+      <div class="packs" id="packs"></div>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
+    try { tg.setHeaderColor(tg.colorScheme === 'dark' ? '#070814' : '#ffffff'); } catch(e){}
+
+    const u = tg.initDataUnsafe?.user;
+    if (u) document.getElementById('user').textContent = `@${u.username || 'user'}  •  id ${u.id}`;
+
+    const fmt = new Intl.DateTimeFormat('ru-RU', {hour:'2-digit',minute:'2-digit'}); 
+    const setClock = ()=> document.getElementById('clock').textContent = fmt.format(new Date());
+    setClock(); setInterval(setClock, 30_000);
+
+    function send(action, extra={}) { tg.sendData(JSON.stringify({action, ...extra})); }
+
+    // Баланс — только по кнопке (чтобы WebApp не закрывался сам)
+    document.getElementById('btnBalance').onclick = ()=> send('balance');
+
+    // Расклады
+    document.querySelectorAll('.tile').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const act = el.dataset.act;
+        if (act === 'yes_no') {
+          const q = prompt('Введите ваш вопрос (Да/Нет):');
+          if (!q) return;
+          return send('yes_no', {question: q});
+        }
+        return send(act);
+      });
+    });
+
+    // Магазин — фиксированные цены с нужными скидками
+    const shop = document.getElementById('shop');
+    const packsData = [
+      {qty:100,  priceRub:250,  discount:0},
+      {qty:200,  priceRub:480,  discount:5},
+      {qty:300,  priceRub:725,  discount:10},
+      {qty:500,  priceRub:1180, discount:15},
+      {qty:1000, priceRub:2250, discount:20}
+    ];
+    const packs = document.getElementById('packs');
+    packsData.forEach(p=>{
+      const row = document.createElement('div');
+      row.className = 'pack';
+      row.innerHTML = `
+        <div class="left">
+          <span class="pill">${p.qty} сообщений</span>
+          ${p.discount? `<span class="badge">−${p.discount}%</span>`:''}
+        </div>
+        <div class="price">${p.priceRub.toLocaleString('ru-RU')} ₽</div>
+        <div class="right">
+          <button class="btn buy" data-qty="${p.qty}">Купить</button>
+        </div>`;
+      packs.appendChild(row);
+    });
+    document.getElementById('btnTopup').onclick = ()=> shop.classList.add('open');
+    document.getElementById('closeShop').onclick = ()=> shop.classList.remove('open');
+    shop.addEventListener('click', (e)=>{
+      if (e.target === shop) shop.classList.remove('open');
+      const btn = e.target.closest('button[data-qty]');
+      if (btn) { send('buy', {qty: parseInt(btn.dataset.qty,10)}); shop.classList.remove('open'); }
+    });
+
+    tg.onEvent('themeChanged', ()=> {
+      try { tg.setHeaderColor(tg.colorScheme === 'dark' ? '#070814' : '#ffffff'); } catch(e){}
+    });
+  </script>
+</body>
+</html>
